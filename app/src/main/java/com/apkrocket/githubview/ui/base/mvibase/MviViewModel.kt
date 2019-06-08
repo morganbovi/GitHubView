@@ -1,7 +1,11 @@
 package com.apkrocket.githubview.ui.base.mvibase
 
-interface MviViewModel<I : MviIntent> {
+import androidx.lifecycle.LiveData
+
+interface MviViewModel<I : MviIntent, S : MviViewState> {
 
     fun processIntent(intent: I)
+
+    fun states(): LiveData<S>
 
 }

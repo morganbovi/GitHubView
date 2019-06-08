@@ -1,6 +1,6 @@
 package com.apkrocket.githubview.ui.repos
 
-import com.apkrocket.githubview.model.Repo
+import com.apkrocket.githubview.store.model.Repo
 import com.apkrocket.githubview.ui.base.mvibase.MviAction
 import com.apkrocket.githubview.ui.base.mvibase.MviIntent
 import com.apkrocket.githubview.ui.base.mvibase.MviViewState
