@@ -27,28 +27,7 @@ class ListReposViewModel @Inject constructor(
 
     private var currentViewState = ListReposViewState.idle()
 
-    private val viewStateObservable = MutableLiveData<ListReposViewState>()
-
-    init {
-        viewStateObservable.value = currentViewState
-    }
-
-    private fun fetchSomeReposeActionProcessor() {
-        reduceStateFromResult(FetchSomeReposResult.InFlight)
-
-        uiScope.launch {
-            reduceStateFromResult(
-                when (val result = githubStore.fetchReposAsync()) {
-                    is Result.Success -> {
-                        FetchSomeReposResult.Success(result.data)
-                    }
-                    is Result.Error -> {
-                        FetchSomeReposResult.Failure(result.exception)
-                    }
-                }
-            )
-        }
-    }
+    private val viewStateObservable = MutableLiveData<ListReposViewState>().apply { this.value = currentViewState }
 
     override fun processIntent(intent: ListReposIntent) {
         processActions(actionFromIntent(intent))
@@ -56,16 +35,33 @@ class ListReposViewModel @Inject constructor(
 
     override fun states(): LiveData<ListReposViewState> = viewStateObservable
 
+    private fun processActions(action: ListReposAction) {
+        uiScope.launch {
+            when (action) {
+                is FetchSomeReposAction -> fetchSomeReposeActionProcessor()
+            }
+        }
+    }
+
     private fun actionFromIntent(intent: ListReposIntent): ListReposAction {
         return when (intent) {
             is InitialIntent -> FetchSomeReposAction
         }
     }
 
-    private fun processActions(action: ListReposAction) {
-        when (action) {
-            is FetchSomeReposAction -> fetchSomeReposeActionProcessor()
-        }
+    private suspend fun fetchSomeReposeActionProcessor() {
+        reduceStateFromResult(FetchSomeReposResult.InFlight)
+
+        reduceStateFromResult(
+            when (val result = githubStore.fetchReposAsync()) {
+                is Result.Success -> {
+                    FetchSomeReposResult.Success(result.data)
+                }
+                is Result.Error -> {
+                    FetchSomeReposResult.Failure(result.exception)
+                }
+            }
+        )
     }
 
     private fun reduceStateFromResult(result: ListReposResult) {

@@ -1,60 +1,51 @@
 package com.apkrocket.githubview.ui.repos
 
-import androidx.lifecycle.Observer
+import com.apkrocket.githubview.base.BaseJunitTest
 import com.apkrocket.githubview.store.data.GithubStore
-import com.apkrocket.githubview.store.rest.GithubService
+import com.apkrocket.githubview.store.data.Result
 import com.apkrocket.githubview.ui.repos.ListReposContract.ListReposIntent
 import com.apkrocket.githubview.ui.repos.ListReposContract.ListReposViewState
-import com.jraska.livedata.test
+import com.apkrocket.githubview.utils.TestObserver
+import com.apkrocket.githubview.utils.test
+import junit.framework.Assert.assertEquals
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
-import org.mockito.ArgumentCaptor
-import org.mockito.Mock
+import org.mockito.Mockito
 import org.mockito.Mockito.*
-import org.mockito.MockitoAnnotations
 
-class ListReposViewModelTest {
+@ExperimentalCoroutinesApi
+class ListReposViewModelTest : BaseJunitTest() {
 
-    private val mockGithubService = mock(GithubService::class.java)
-    private val mockGithubStore = GithubStore(mockGithubService)
+    private val mockGithubStore = mock(GithubStore::class.java)
 
-    @Mock
-    lateinit var testObserver: Observer<ListReposViewState>
+    private lateinit var testStatesObserver: TestObserver<ListReposViewState>
 
     lateinit var viewModel: ListReposViewModel
 
     @Before
-    fun setUp() {
-        MockitoAnnotations.initMocks(this)
+    override fun setUp() {
+        super.setUp()
 
         viewModel = ListReposViewModel(mockGithubStore)
+        testStatesObserver = viewModel.states().test()
+
     }
 
     @Test
-    fun testFetchSomeRepos() {
-//        val capturedStates = ArgumentCaptor.forClass(ListReposViewState::class.java)
+    fun testFetchSomeRepos() = runBlocking {
+        val exception = RuntimeException("OUCH")
 
-        runBlocking {
-            `when`(mockGithubService.fetchReposAsync()).thenThrow(RuntimeException("OUCH"))
-        }
-
-        viewModel.states()
-            .test()
-            .assertValue(ListReposViewState.idle())
+        Mockito.`when`(mockGithubStore.fetchReposAsync()).thenReturn(Result.Error(exception))
 
         viewModel.processIntent(ListReposIntent.InitialIntent)
 
+        verify(mockGithubStore, times(1)).fetchReposAsync()
 
-//        verify(testObserver).onChanged(capturedStates.capture())
-//
-//        val expectedList = arrayListOf<ListReposViewState>(
-//            ListReposViewState.idle(),
-//            ListReposViewState.idle().copy(loading = true),
-//            ListReposViewState.idle().copy(error = RuntimeException("OUCH"))
-//        )
-//
-//        assert(capturedStates == expectedList)
+        assertEquals(ListReposViewState.idle(), testStatesObserver.values[0])
+        assertEquals(ListReposViewState.idle().copy(loading = true), testStatesObserver.values[1])
+        assertEquals(ListReposViewState.idle().copy(error = exception), testStatesObserver.values[2])
 
     }
 }
